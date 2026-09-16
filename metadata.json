@@ -1,0 +1,6 @@
+{
+  "name": "OmniPOS - Multi-Branch Retail ERP",
+  "description": "Multi-tenant, multi-branch retail POS and ERP management system for computer, laptop, and IT hardware retail with serial tracking, inventory movements, and role-based access control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
