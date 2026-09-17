@@ -45,7 +45,7 @@ export const SuppliersView: React.FC<SuppliersViewProps> = ({ user, activeBranch
   const loadSuppliers = async () => {
     setLoading(true);
     try {
-      const res = await api.getSuppliers();
+      const res = await api.getSuppliers(activeBranchId || undefined);
       setSuppliers(res.suppliers);
     } catch (err) {
       console.error('Failed to load suppliers:', err);
@@ -65,7 +65,7 @@ export const SuppliersView: React.FC<SuppliersViewProps> = ({ user, activeBranch
 
   const loadProducts = async () => {
     try {
-      const res = await api.getProducts();
+      const res = await api.getProducts({ branch_id: activeBranchId || undefined });
       setProducts(res.products);
     } catch (err) {
       console.error('Failed to load products:', err);

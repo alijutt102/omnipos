@@ -167,7 +167,7 @@ export const POSTerminal: React.FC<POSTerminalProps> = ({
 
   const loadCategories = async () => {
     try {
-      const res = await api.getCategories();
+      const res = await api.getCategories(effectiveBranchId);
       setCategories(res.categories);
     } catch (err) {
       console.error('Failed to load categories:', err);
@@ -176,7 +176,7 @@ export const POSTerminal: React.FC<POSTerminalProps> = ({
 
   const loadCustomers = async () => {
     try {
-      const res = await api.getCustomers();
+      const res = await api.getCustomers(undefined, effectiveBranchId);
       setCustomers(res.customers);
     } catch (err) {
       console.error('Failed to load customers:', err);

@@ -56,7 +56,7 @@ export const TransfersView: React.FC<TransfersViewProps> = ({ user, activeBranch
   const loadTransfers = async () => {
     setLoading(true);
     try {
-      const res = await api.getTransfers();
+      const res = await api.getTransfers(activeBranchId || undefined);
       setTransfers(res.transfers);
     } catch (err) {
       console.error('Failed to load transfers:', err);

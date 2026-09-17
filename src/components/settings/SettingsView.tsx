@@ -58,15 +58,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeBranchId]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [bRes, uRes, aRes] = await Promise.all([
         api.getBranches(),
-        api.getUsers(),
-        api.getAuditLogs().catch(() => ({ auditLogs: [] })),
+        api.getUsers(activeBranchId || undefined),
+        api.getAuditLogs(activeBranchId || undefined).catch(() => ({ auditLogs: [] })),
       ]);
       setBranches(bRes.branches || []);
       setUsers(uRes.users || []);

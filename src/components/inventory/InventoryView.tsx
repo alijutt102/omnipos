@@ -96,7 +96,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ user, activeBranch
 
   const loadCategories = async () => {
     try {
-      const res = await api.getCategories();
+      const res = await api.getCategories(activeBranchId || undefined);
       setCategories(res.categories);
     } catch (err) {
       console.error('Failed to load categories:', err);
@@ -105,7 +105,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ user, activeBranch
 
   const loadBrands = async () => {
     try {
-      const res = await api.getBrands();
+      const res = await api.getBrands(activeBranchId || undefined);
       setBrands(res.brands);
     } catch (err) {
       console.error('Failed to load brands:', err);

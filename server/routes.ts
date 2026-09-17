@@ -378,9 +378,13 @@ apiRouter.get('/products', authenticate, async (req: AuthRequest, res: Response)
     const categoryId = req.query.category_id as string;
     const productType = req.query.product_type as string;
 
-    const branchClause = branchId ? `AND sm.branch_id = '${branchId}'` : '';
-    let searchClause = '';
     const params: any[] = [orgId];
+    const branchClause = branchId ? 'AND sm.branch_id = $2' : '';
+    const productBranchClause = branchId
+      ? 'AND EXISTS (SELECT 1 FROM stock_movements sm_branch WHERE sm_branch.product_id = p.id AND sm_branch.organization_id = p.organization_id AND sm_branch.branch_id = $2)'
+      : '';
+    let searchClause = '';
+    if (branchId) params.push(branchId);
 
     if (search.trim()) {
       params.push(`%${search.trim().toLowerCase()}%`);
@@ -411,7 +415,7 @@ apiRouter.get('/products', authenticate, async (req: AuthRequest, res: Response)
       LEFT JOIN categories c ON c.id = p.category_id
       LEFT JOIN brands b ON b.id = p.brand_id
       LEFT JOIN stock_movements sm ON sm.product_id = p.id AND sm.organization_id = p.organization_id ${branchClause}
-      WHERE p.organization_id = $1 AND p.active_status = true ${searchClause}
+      WHERE p.organization_id = $1 AND p.active_status = true ${productBranchClause} ${searchClause}
       GROUP BY p.id, c.name, b.name
       ORDER BY p.product_name ASC
     `, params);
@@ -524,9 +528,22 @@ apiRouter.post('/products', authenticate, requireRole(['TENANT_OWNER', 'BRANCH_M
 
 apiRouter.get('/categories', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const branchId = getAuthorizedBranchId(req, req.query.branch_id as string);
+    const params: any[] = [req.user!.organization_id];
+    let branchClause = '';
+    if (branchId) {
+      params.push(branchId);
+      branchClause = `AND EXISTS (
+        SELECT 1 FROM products p
+        JOIN stock_movements sm ON sm.product_id = p.id
+        WHERE p.category_id = categories.id AND sm.branch_id = $2
+      )`;
+    }
     const resCats = await query(`
-      SELECT id, name, description FROM categories WHERE organization_id = $1 ORDER BY name ASC
-    `, [req.user!.organization_id]);
+      SELECT id, name, description FROM categories
+      WHERE organization_id = $1 ${branchClause}
+      ORDER BY name ASC
+    `, params);
     res.json({ categories: resCats.rows });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch categories.' });
@@ -535,9 +552,22 @@ apiRouter.get('/categories', authenticate, async (req: AuthRequest, res: Respons
 
 apiRouter.get('/brands', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const branchId = getAuthorizedBranchId(req, req.query.branch_id as string);
+    const params: any[] = [req.user!.organization_id];
+    let branchClause = '';
+    if (branchId) {
+      params.push(branchId);
+      branchClause = `AND EXISTS (
+        SELECT 1 FROM products p
+        JOIN stock_movements sm ON sm.product_id = p.id
+        WHERE p.brand_id = brands.id AND sm.branch_id = $2
+      )`;
+    }
     const resBrands = await query(`
-      SELECT id, name FROM brands WHERE organization_id = $1 ORDER BY name ASC
-    `, [req.user!.organization_id]);
+      SELECT id, name FROM brands
+      WHERE organization_id = $1 ${branchClause}
+      ORDER BY name ASC
+    `, params);
     res.json({ brands: resBrands.rows });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch brands.' });
@@ -809,7 +839,7 @@ apiRouter.post('/inventory/adjustments', authenticate, requireRole(['TENANT_OWNE
 apiRouter.get('/transfers', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const orgId = req.user!.organization_id;
-    const branchId = getAuthorizedBranchId(req);
+    const branchId = getAuthorizedBranchId(req, req.query.branch_id as string);
 
     let branchClause = '';
     const params: any[] = [orgId];
@@ -1424,7 +1454,7 @@ apiRouter.post('/sales/:id/cancel', authenticate, requireRole(['TENANT_OWNER', '
 apiRouter.get('/returns', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const orgId = req.user!.organization_id;
-    const branchId = getAuthorizedBranchId(req);
+    const branchId = getAuthorizedBranchId(req, req.query.branch_id as string);
 
     const params: any[] = [orgId];
     let branchClause = '';
@@ -1876,13 +1906,19 @@ apiRouter.post('/expenses', authenticate, requireRole(['TENANT_OWNER', 'BRANCH_M
 apiRouter.get('/customers', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const orgId = req.user!.organization_id;
+    const branchId = getAuthorizedBranchId(req, req.query.branch_id as string);
     const search = (req.query.search as string) || '';
 
     const params: any[] = [orgId];
-    let searchClause = '';
+    let filterClause = '';
+    if (branchId) {
+      params.push(branchId);
+      filterClause = 'AND c.branch_id = $2';
+    }
     if (search.trim()) {
       params.push(`%${search.trim().toLowerCase()}%`);
-      searchClause = `AND (LOWER(c.name) LIKE $2 OR LOWER(c.phone) LIKE $2 OR LOWER(c.email) LIKE $2)`;
+      const searchParam = `$${params.length}`;
+      filterClause += ` AND (LOWER(c.name) LIKE ${searchParam} OR LOWER(c.phone) LIKE ${searchParam} OR LOWER(c.email) LIKE ${searchParam})`;
     }
 
     const custs = await query(`
@@ -1894,7 +1930,7 @@ apiRouter.get('/customers', authenticate, async (req: AuthRequest, res: Response
       FROM customers c
       LEFT JOIN branches b ON b.id = c.branch_id
       LEFT JOIN sales s ON s.customer_id = c.id AND s.sale_status = 'COMPLETED'
-      WHERE c.organization_id = $1 ${searchClause}
+      WHERE c.organization_id = $1 ${filterClause}
       GROUP BY c.id, b.branch_name
       ORDER BY c.name ASC
     `, params);
@@ -2037,17 +2073,28 @@ apiRouter.post('/customers/:id/payments', authenticate, async (req: AuthRequest,
 apiRouter.get('/suppliers', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const orgId = req.user!.organization_id;
+    const branchId = getAuthorizedBranchId(req, req.query.branch_id as string);
+    const params: any[] = [orgId];
+    let branchClause = '';
+    if (branchId) {
+      params.push(branchId);
+      branchClause = 'AND p.branch_id = $2';
+    }
     const sups = await query(`
       SELECT 
         s.*,
         COUNT(p.id) as purchases_count,
         COALESCE(SUM(p.total), 0) as total_purchased
       FROM suppliers s
-      LEFT JOIN purchases p ON p.supplier_id = s.id
+      LEFT JOIN purchases p ON p.supplier_id = s.id ${branchClause}
       WHERE s.organization_id = $1
+        AND (p.id IS NOT NULL OR NOT EXISTS (
+          SELECT 1 FROM purchases p_other
+          WHERE p_other.supplier_id = s.id AND p_other.organization_id = $1
+        ))
       GROUP BY s.id
       ORDER BY s.name ASC
-    `, [orgId]);
+    `, params);
     res.json({ suppliers: sups.rows });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch suppliers.' });
@@ -2293,7 +2340,7 @@ apiRouter.put('/repairs/:id', authenticate, async (req: AuthRequest, res: Respon
 apiRouter.get('/audit-logs', authenticate, requireRole(['TENANT_OWNER', 'BRANCH_MANAGER', 'AUDITOR', 'SUPER_ADMIN']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const orgId = req.user!.organization_id;
-    const branchId = getAuthorizedBranchId(req);
+    const branchId = getAuthorizedBranchId(req, req.query.branch_id as string);
     const logs = await query(`
       SELECT 
         al.*,
@@ -2317,7 +2364,7 @@ apiRouter.get('/audit-logs', authenticate, requireRole(['TENANT_OWNER', 'BRANCH_
 apiRouter.get('/users', authenticate, requireRole(['TENANT_OWNER', 'BRANCH_MANAGER', 'SUPER_ADMIN']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const orgId = req.user!.organization_id;
-    const branchId = getAuthorizedBranchId(req);
+    const branchId = getAuthorizedBranchId(req, req.query.branch_id as string);
     const usersRes = await query(`
       SELECT 
         u.id, u.name, u.email, u.role_name, u.phone, u.status, u.created_at,

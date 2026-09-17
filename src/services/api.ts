@@ -94,8 +94,8 @@ export const api = {
     request<{ success: boolean; message: string }>(`/products/${id}`, {
       method: 'DELETE',
     }),
-  getCategories: () => request<{ categories: any[] }>('/categories'),
-  getBrands: () => request<{ brands: any[] }>('/brands'),
+  getCategories: (branch_id?: string) => request<{ categories: any[] }>(`/categories${branch_id ? `?branch_id=${encodeURIComponent(branch_id)}` : ''}`),
+  getBrands: (branch_id?: string) => request<{ brands: any[] }>(`/brands${branch_id ? `?branch_id=${encodeURIComponent(branch_id)}` : ''}`),
 
   // Serials
   getSerials: (params?: { branch_id?: string; product_id?: string; status?: string }) => {
@@ -123,7 +123,7 @@ export const api = {
     }),
 
   // Transfers
-  getTransfers: () => request<{ transfers: StockTransfer[] }>('/transfers'),
+  getTransfers: (branch_id?: string) => request<{ transfers: StockTransfer[] }>(`/transfers${branch_id ? `?branch_id=${encodeURIComponent(branch_id)}` : ''}`),
   createTransfer: (data: any) =>
     request<{ success: boolean; transferId: string; transferNumber: string }>('/transfers', {
       method: 'POST',
@@ -165,7 +165,7 @@ export const api = {
     }),
 
   // Returns
-  getReturns: () => request<{ returns: any[] }>('/returns'),
+  getReturns: (branch_id?: string) => request<{ returns: any[] }>(`/returns${branch_id ? `?branch_id=${encodeURIComponent(branch_id)}` : ''}`),
   processReturn: (data: any) =>
     request<{ success: boolean; returnNumber: string }>('/returns', {
       method: 'POST',
@@ -210,9 +210,10 @@ export const api = {
     }),
 
   // Customers
-  getCustomers: (search?: string) => {
+  getCustomers: (search?: string, branch_id?: string) => {
     const query = new URLSearchParams();
     if (search) query.append('search', search);
+    if (branch_id) query.append('branch_id', branch_id);
     return request<{ customers: Customer[] }>(`/customers?${query.toString()}`);
   },
   createCustomer: (data: any) =>
@@ -229,7 +230,7 @@ export const api = {
     }),
 
   // Suppliers
-  getSuppliers: () => request<{ suppliers: Supplier[] }>('/suppliers'),
+  getSuppliers: (branch_id?: string) => request<{ suppliers: Supplier[] }>(`/suppliers${branch_id ? `?branch_id=${encodeURIComponent(branch_id)}` : ''}`),
   createSupplier: (data: any) =>
     request<{ success: boolean; supId: string }>('/suppliers', {
       method: 'POST',
@@ -265,10 +266,10 @@ export const api = {
     }),
 
   // Audit Logs
-  getAuditLogs: () => request<{ auditLogs: AuditLog[] }>('/audit-logs'),
+  getAuditLogs: (branch_id?: string) => request<{ auditLogs: AuditLog[] }>(`/audit-logs${branch_id ? `?branch_id=${encodeURIComponent(branch_id)}` : ''}`),
 
   // Staff Users
-  getUsers: () => request<{ users: any[] }>('/users'),
+  getUsers: (branch_id?: string) => request<{ users: any[] }>(`/users${branch_id ? `?branch_id=${encodeURIComponent(branch_id)}` : ''}`),
   createUser: (data: any) =>
     request<{ success: boolean; userId: string }>('/users', {
       method: 'POST',

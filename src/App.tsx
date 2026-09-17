@@ -448,7 +448,6 @@ export default function App() {
                     onChange={(e) => setActiveBranchId(e.target.value)}
                     className="bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-semibold rounded-xl pl-2.5 pr-7 py-1.5 border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-2xs"
                   >
-                    <option value="">🏢 All Stores (Together)</option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
                         📍 {b.branch_name} ({b.branch_code})

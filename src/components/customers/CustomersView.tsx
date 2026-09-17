@@ -42,12 +42,12 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ user, activeBranch
 
   useEffect(() => {
     loadCustomers();
-  }, []);
+  }, [activeBranchId]);
 
   const loadCustomers = async () => {
     setLoading(true);
     try {
-      const res = await api.getCustomers(searchQuery || undefined);
+      const res = await api.getCustomers(searchQuery || undefined, activeBranchId || undefined);
       setCustomers(res.customers);
     } catch (err) {
       console.error('Failed to load customers:', err);

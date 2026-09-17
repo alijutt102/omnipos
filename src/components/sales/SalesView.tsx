@@ -69,7 +69,7 @@ export const SalesView: React.FC<SalesViewProps> = ({
     try {
       const [salesRes, returnsRes] = await Promise.all([
         api.getSales({ branch_id: branchParam }),
-        api.getReturns(),
+        api.getReturns(branchParam),
       ]);
       setSales(salesRes.sales || []);
       setReturnsList(returnsRes.returns || []);
