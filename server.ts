@@ -1,3 +1,11 @@
+process.on('uncaughtException', (err) => {
+  console.error('FATAL: Uncaught exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('FATAL: Unhandled promise rejection at:', promise, 'reason:', reason);
+});
+
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
@@ -7,6 +15,8 @@ import { initializeDatabase } from './server/db.ts';
 import { apiRouter } from './server/routes.ts';
 
 async function startServer() {
+  console.error('startServer() called - beginning server startup...');
+
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
@@ -27,11 +37,19 @@ async function startServer() {
   });
 
   // Initialize PostgreSQL schema and seed demo data
+  console.error('Initializing database connection...', {
+    hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+    nodeEnv: process.env.NODE_ENV,
+  });
   try {
     await initializeDatabase();
     console.log('PostgreSQL database initialized and ready.');
   } catch (err) {
     console.error('Database initialization error:', err);
+    if (err instanceof Error) {
+      console.error('Database initialization error message:', err.message);
+      console.error('Database initialization error stack:', err.stack);
+    }
   }
 
   // Health check endpoint
@@ -66,4 +84,11 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('FATAL: startServer() failed to start:', err);
+  if (err instanceof Error) {
+    console.error('FATAL: error message:', err.message);
+    console.error('FATAL: error stack:', err.stack);
+  }
+  process.exit(1);
+});
