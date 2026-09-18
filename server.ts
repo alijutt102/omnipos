@@ -1,3 +1,13 @@
+process.on('uncaughtException', (err) => {
+  console.error('FATAL: Uncaught exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('FATAL: Unhandled rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
@@ -7,8 +17,12 @@ import { initializeDatabase } from './server/db.ts';
 import { apiRouter } from './server/routes.ts';
 
 async function startServer() {
+  console.error('startServer() invoked - beginning startup sequence...');
+
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
+
+  console.error(`Startup config: NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}, DATABASE_URL=${process.env.DATABASE_URL ? 'set' : 'not set'}`);
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
@@ -27,6 +41,7 @@ async function startServer() {
   });
 
   // Initialize PostgreSQL schema and seed demo data
+  console.error(`About to initialize database. NODE_ENV=${process.env.NODE_ENV}, DATABASE_URL=${process.env.DATABASE_URL ? 'set' : 'not set'}`);
   try {
     await initializeDatabase();
     console.log('PostgreSQL database initialized and ready.');
@@ -61,9 +76,13 @@ async function startServer() {
     });
   }
 
+  console.error(`Starting HTTP listener on port ${PORT}...`);
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Retail ERP Server running on http://0.0.0.0:${PORT}`);
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('FATAL: startServer() failed to start:', err);
+  process.exit(1);
+});
