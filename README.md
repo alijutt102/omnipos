@@ -36,6 +36,15 @@ INITIAL_ORGANIZATION_NAME=Your Store Name
 
 Production does not create demo products, sample sales, promotions, or demo accounts. Add your real products and staff after the first admin login.
 
+### Railway deployment
+
+1. Add a Railway PostgreSQL service to the project.
+2. Add the PostgreSQL service's `DATABASE_URL` to the app service variables.
+3. Set `NODE_ENV=production` and the production variables above.
+4. Use `npm run build` as the build command and `npm start` as the start command.
+
+The app intentionally does not use the embedded PGlite database in production. This prevents a missing Railway database variable from causing the container to be killed while initializing a local database.
+
 To remove the existing seeded demo catalog from a database, run this once with the correct database environment loaded:
 
 ```powershell

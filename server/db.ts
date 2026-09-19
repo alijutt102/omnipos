@@ -127,6 +127,10 @@ export async function getDb(): Promise<DbClient> {
     };
   }
 
+  if (process.env.NODE_ENV === 'production' || process.env.npm_lifecycle_event === 'start') {
+    throw new Error('DATABASE_URL is required in production. Attach a Railway PostgreSQL service and expose its DATABASE_URL variable.');
+  }
+
   if (!pgliteInstance) {
     if (!pgliteInitPromise) {
       pgliteInitPromise = initPGlite().then(async (inst) => {

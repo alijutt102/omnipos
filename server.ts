@@ -9,6 +9,7 @@ import { apiRouter } from './server/routes.ts';
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.npm_lifecycle_event === 'start';
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
@@ -32,6 +33,9 @@ async function startServer() {
     console.log('PostgreSQL database initialized and ready.');
   } catch (err) {
     console.error('Database initialization error:', err);
+    if (isProduction) {
+      process.exit(1);
+    }
   }
 
   // Health check endpoint
@@ -47,7 +51,7 @@ async function startServer() {
   app.use('/api', apiRouter);
 
   // Vite middleware for development / Static assets for production
-  if (process.env.NODE_ENV !== 'production') {
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
